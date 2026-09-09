@@ -1,0 +1,14 @@
+{
+  "name": "tei0110",
+  "description": "個人用のClaudeプラグイン置き場",
+  "owner": {
+    "name": "tei0110",
+    "url": "https://github.com/tei0110"
+  },
+  "plugins": [
+    {
+      "name": "my",
+      "source": "./plugins/my"
+    }
+  ]
+}

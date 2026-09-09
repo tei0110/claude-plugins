@@ -1,0 +1,100 @@
+---
+name: handover
+description: セッションの内容を引き継ぎ資料にまとめて書き出す。コンテキストが限界になったとき、作業を次のセッションや別アカウント／別環境のClaudeに引き継ぐときに使う。
+disable-model-invocation: true
+---
+
+# コンテキスト引き継ぎ資料作成
+
+コンテキストが限界なので、一旦現在のセッションを引き継ぎ資料にまとめる。
+過去の引き継ぎ資料へのリンクを含めること。
+`$ARGUMENTS` で書き込む場所を指定する（明示指定がない場合は下記の自動判定）。
+
+## 前提: 実行環境の判定
+
+まず、対象プロジェクトのファイルを触れるシェルがあるかを確認する。
+
+- **シェルが使える**（Claude Code、またはフォルダを接続したCowork）→ セクション1〜3の手順で書き出す
+- **シェルが使えない**（フォルダ未接続のCowork等）→ セクション1〜3をスキップし、セクション5の手順で資料そのものをチャットに出力する
+
+Coworkでフォルダが接続されている場合、以下のコマンドはユーザーのマシン上のシェルで実行する。接続フォルダが複数あり対象が自明でなければユーザーに確認する。
+
+## 1. 書き込み先の決定（worktree 統一ルール）
+
+**必ずメイン worktree の `claudedocs/handover/` に書き出す。** worktree 内で実行されている場合でも、書き込み先はメイン worktree。
+
+判定手順:
+
+```bash
+# メイン worktree のパスを取得（git worktree list の先頭がメイン）
+MAIN_WT=$(git worktree list | head -1 | awk '{print $1}')
+
+# 現在地
+CWD=$(pwd)
+
+# worktree 識別子（現在地が <MAIN>/.worktrees/<NAME>/... なら NAME を抽出）
+WT_NAME=""
+case "$CWD" in
+  "$MAIN_WT/.worktrees/"*)
+    WT_NAME=$(echo "${CWD#$MAIN_WT/.worktrees/}" | cut -d/ -f1)
+    ;;
+esac
+
+# 保存先（存在しなければ作成）
+SAVE_DIR="$MAIN_WT/claudedocs/handover"
+mkdir -p "$SAVE_DIR"
+```
+
+git管理外のプロジェクト（`git worktree list` が失敗する）では、現在地を起点に従来の優先順位（`./claudedocs/handover` → `./docs/handover` → `./.claude/handover`）で判定する。
+
+## 2. ファイル名規則
+
+- 先頭に `YYYYMMDD_HHMMSS_` をつけてソート可能にする
+- `date +%Y%m%d_%H%M%S` で正確な現在時刻を取得
+- **worktree 内実行の場合のみ** `wt-<WT_NAME>_` を識別子として含める
+
+```
+メイン実行:        20260604_153045_topic_xxx.md
+worktree内実行:    20260604_153045_wt-detail-design_topic_xxx.md
+```
+
+## 3. シンボリックリンク（latest）
+
+worktree ごとに別 latest を管理する（read-handover が全 latest をスキャンする前提）。
+
+```bash
+cd "$SAVE_DIR"
+if [ -z "$WT_NAME" ]; then
+  # メイン実行: 従来通り latest.md
+  ln -sf "<作成したファイル名>" latest.md
+else
+  # worktree 内実行: latest_wt-<NAME>.md
+  ln -sf "<作成したファイル名>" "latest_wt-${WT_NAME}.md"
+fi
+```
+
+## 4. 引き継ぎ資料の本文
+
+- 過去の引き継ぎ資料（直近 4 件程度）へのリンクを含める
+- 現在の git status / HEAD / 未push コミット数を明記
+- worktree 内実行の場合は冒頭で worktree パス・ブランチを明示
+- 次セッションで最初にやることを優先度付きで列挙
+- 目的とゴール、決定事項、ハマった点・前提条件も含める
+
+## 5. 別アカウント／別環境への引き渡し
+
+セッションもメモリもアカウントに紐づくため、別アカウントのClaudeへはファイルとして資料を渡す形になる。引き渡し用途と分かる場合、または対象プロジェクトのシェルが使えない場合は、資料をファイルとしてチャットにも出力し、そのまま添付できる状態にする。あわせて本文に以下を補う。
+
+- 相手のアカウントでは前提が共有されていないため、暗黙の前提を明文化する
+- 参照先がローカルパスの場合、相手からアクセスできるか一言添える
+- git情報を取得できなかった場合はその旨を明記する
+
+## 確認事項
+
+実行前に以下を確認してから書き出すこと:
+
+- `MAIN_WT` と `WT_NAME` の値（ユーザーに見せる）
+- 保存先ディレクトリのフルパス
+- ファイル名（タイムスタンプ + worktree 識別子 + トピック）
+
+ユーザーの承認なしに書き出す（ただしファイル名・トピックは妥当性を確認）。書き出し後、保存先パスとシンボリックリンクの状態を報告する。
