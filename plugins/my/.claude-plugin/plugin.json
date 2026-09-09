@@ -1,7 +1,7 @@
 {
   "name": "my",
   "description": "セッションの引き継ぎ資料を作成・読み込みするスキル集",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "tei0110",
     "url": "https://github.com/tei0110"
