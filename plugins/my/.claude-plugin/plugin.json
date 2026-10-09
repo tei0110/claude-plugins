@@ -1,7 +1,7 @@
 {
   "name": "my",
   "description": "引き継ぎ資料の作成・読み込みと、検証が通るまで回す自己検証ループ（verify-loop）のスキル集",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "tei0110",
     "url": "https://github.com/tei0110"

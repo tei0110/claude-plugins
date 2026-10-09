@@ -61,7 +61,7 @@ worktree では、worktree 自身 → 本体 checkout の順に探す（本体�
   ],
   "steps": [                         // Stop 時に上から順に実行。最初の失敗で止める
     { "name": "...", "run": "シェルコマンド",
-      "files": ["src/*.php"],        // 変更ファイル（HEAD 比較＋未追跡）でこの glob に合うものを {files} に展開。無ければスキップ
+      "files": ["src/*.php"],        // 対象ファイルのうちこの glob に合うものを {files} に展開。無ければスキップ
       "strip_prefix": "src/",
       "args_key": "phpunit",         // on --set phpunit=... の値を {args} に展開
       "args_prefix": "--",           // args があるときだけ前に付ける
@@ -72,6 +72,8 @@ worktree では、worktree 自身 → 本体 checkout の順に探す（本体�
 }
 ```
 
+- 対象ファイル = ON 以降に新しく現れたファイル、または ON 時点から内容が変わったファイル（HEAD 比較＋未追跡が母集団）。
+  ON 前からある一時スクリプトなどは、内容が変わらない限り対象外。
 - glob は Python の fnmatch（`*` は `/` もまたぐ）。パスはリポジトリルート相対。
 - コマンドはリポジトリルートをカレントに `sh` で実行される。
 - 前回 PASS 時から作業ツリーが変わっていなければ、検証は再実行しない。

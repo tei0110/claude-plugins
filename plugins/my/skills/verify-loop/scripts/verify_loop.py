@@ -101,6 +101,25 @@ def changed_files(root):
     return sorted(n for n in names if n and os.path.isfile(os.path.join(root, n)))
 
 
+def file_hash(root, rel):
+    try:
+        with open(os.path.join(root, rel), "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except Exception:
+        return None
+
+
+def baseline(root):
+    """ON にした時点で変更済み・未追跡だったファイルとその内容ハッシュ"""
+    return {f: file_hash(root, f) for f in changed_files(root)}
+
+
+def target_files(root, st):
+    """チェック対象: ON 以降に新しく現れたファイル、または ON 時点から内容が変わったファイル"""
+    base = st.get("baseline") or {}
+    return [f for f in changed_files(root) if f not in base or base[f] != file_hash(root, f)]
+
+
 def match(path, patterns):
     pats = [patterns] if isinstance(patterns, str) else patterns
     return any(fnmatch.fnmatch(path, p) for p in pats)  # * は / もまたぐ
@@ -170,7 +189,8 @@ def cmd_on(argv):
     save(os.path.join(root, STATE), {
         "enabled": True, "args": args, "skip": a.skip,
         "max_attempts": a.max or cfg.get("max_attempts", DEFAULT_MAX),
-        "attempts": 0, "enabled_at": time.strftime("%Y-%m-%d %H:%M:%S")})
+        "attempts": 0, "enabled_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "baseline": baseline(root)})
     ensure_excluded(root)
     print("verify-loop: ON")
     return cmd_status([])
@@ -188,7 +208,7 @@ def cmd_off(_):
 def plan(cfg, st, root, wt):
     """各 step を実行するか・何を実行するかを決める -> [(name, cmd or None, 理由)]"""
     out = []
-    changed = changed_files(root)
+    changed = target_files(root, st)
     for s in cfg.get("steps", []):
         name = s["name"]
         if name in st.get("skip", []):
@@ -232,6 +252,11 @@ def cmd_status(_):
         return 0
     if st.get("enabled"):
         print(f"試行: {st.get('attempts', 0)}/{st.get('max_attempts')}  args: {json.dumps(st.get('args', {}), ensure_ascii=False)}")
+        n = len(st.get("baseline") or {})
+        print(f"ON 時点で変更済み・未追跡だったファイル {n} 件は、内容が変わらない限りチェック対象外")
+    else:
+        st = {**st, "baseline": baseline(root)}
+        print(f"今 ON にすると、変更済み・未追跡のファイル {len(st['baseline'])} 件は内容が変わらない限りチェック対象外になります")
     print("終了時に実行される検証:")
     for name, cmd, why in plan(cfg, st, root, wt):
         print(f"  - {name}: {cmd if cmd else '（スキップ: ' + why + '）'}")
