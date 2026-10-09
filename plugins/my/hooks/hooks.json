@@ -1,0 +1,20 @@
+{
+  "description": "verify-loop: .claude/verify-loop.config.json があり、ONにしたプロジェクトだけで動く",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/verify-loop/scripts/verify_loop.py\" post-edit", "timeout": 180 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/verify-loop/scripts/verify_loop.py\" stop", "timeout": 3600 }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "max_attempts": 3,
+  "steps": [
+    { "name": "ESLint", "files": ["*.ts", "*.tsx", "*.js"], "run": "npx eslint {files}" },
+    { "name": "型チェック", "run": "npx tsc --noEmit" },
+    { "name": "Unit", "args_key": "unit", "run": "npm test -- {args}" },
+    { "name": "Playwright", "args_key": "spec", "requires_args": true, "run": "npx playwright test {args} --reporter=line",
+      "hint": "Playwright 失敗時は test-results/ の trace・screenshot を確認してから直す" }
+  ]
+}

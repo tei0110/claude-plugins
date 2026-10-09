@@ -1,7 +1,7 @@
 {
   "name": "my",
-  "description": "セッションの引き継ぎ資料を作成・読み込みするスキル集",
-  "version": "0.2.0",
+  "description": "引き継ぎ資料の作成・読み込みと、検証が通るまで回す自己検証ループ（verify-loop）のスキル集",
+  "version": "0.3.0",
   "author": {
     "name": "tei0110",
     "url": "https://github.com/tei0110"

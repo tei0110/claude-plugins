@@ -1,0 +1,56 @@
+{
+  "max_attempts": 3,
+  "rules": [
+    "テスト実行は composer test:parallel / test-worktree.sh 経由のみ（php artisan test の直接実行は禁止）"
+  ],
+  "preflight": [
+    {
+      "name": "app コンテナ起動",
+      "run": "docker compose ps --status running --services | grep -qx app",
+      "message": "ユーザーに docker compose up -d を依頼してください。",
+      "worktree": false
+    }
+  ],
+  "post_edit": [
+    { "name": "PHP構文", "files": "*.php", "run": "php -l {file}", "if_command": "php", "always": true },
+    {
+      "name": "Pint",
+      "files": "src/*.php",
+      "strip_prefix": "src/",
+      "run": "docker compose exec -T app ./vendor/bin/pint --test {file}",
+      "message": "Pint の整形差分があります。docker compose exec app ./vendor/bin/pint <file> でこのファイルだけ整形してください。",
+      "worktree": false
+    }
+  ],
+  "steps": [
+    {
+      "name": "Pint",
+      "files": "src/*.php",
+      "strip_prefix": "src/",
+      "run": "docker compose exec -T app composer pint -- --test {files}",
+      "worktree_run": "bash .agent/script/composer-worktree.sh -n pint -- --test {files}"
+    },
+    {
+      "name": "PHPStan",
+      "files": "src/*.php",
+      "strip_prefix": "src/",
+      "run": "docker compose exec -T app composer phpstan -- --no-progress {files}",
+      "worktree_run": "bash .agent/script/composer-worktree.sh -n phpstan -- --no-progress {files}"
+    },
+    {
+      "name": "PHPUnit",
+      "args_key": "phpunit",
+      "args_prefix": "--",
+      "run": "docker compose exec -T app composer test:parallel {args}",
+      "worktree_run": "bash .agent/script/test-worktree.sh {args}"
+    },
+    {
+      "name": "Playwright",
+      "args_key": "spec",
+      "requires_args": true,
+      "run": "cd src && PLAYWRIGHT_BASE_URL=http://localhost npx playwright test {args} --reporter=line",
+      "worktree_run": null,
+      "hint": "Playwright 失敗時は src/test-results/ の trace・screenshot を確認してから直す"
+    }
+  ]
+}

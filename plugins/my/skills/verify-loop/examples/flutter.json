@@ -1,0 +1,12 @@
+{
+  "max_attempts": 3,
+  "post_edit": [
+    { "name": "dart format", "files": "*.dart", "run": "dart format --output=none --set-exit-if-changed {file}", "if_command": "dart",
+      "message": "dart format の差分があります。dart format <file> で整形してください。" }
+  ],
+  "steps": [
+    { "name": "dart format", "files": ["lib/*.dart", "test/*.dart"], "run": "dart format --output=none --set-exit-if-changed {files}" },
+    { "name": "flutter analyze", "run": "flutter analyze --no-pub" },
+    { "name": "flutter test", "args_key": "test", "run": "flutter test {args}" }
+  ]
+}
